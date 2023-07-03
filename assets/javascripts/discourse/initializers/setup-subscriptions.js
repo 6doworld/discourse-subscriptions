@@ -21,7 +21,7 @@ export default {
         api.addQuickAccessProfileItem({
           icon: "far-credit-card",
           href: `/u/${user.username}/billing/subscriptions`,
-          content: "Billing",
+          content: I18n.t("discourse_subscriptions.navigation.billing"),
         });
       }
     });
