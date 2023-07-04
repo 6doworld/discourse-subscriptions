@@ -8,6 +8,26 @@ export function stubStripe() {
           resolve({});
         });
       },
+      paymentRequest() {
+        const paymentRequestStub = () => {};
+        paymentRequestStub.canMakePayment = () => {
+          return new Promise((resolve) => {
+            resolve(true);
+          });
+        };
+        paymentRequestStub.on = (eventName) => {
+          if (eventName === "token") {
+            return new Promise((resolve) => {
+              resolve({
+                token: {
+                  id: "test_token",
+                },
+              });
+            });
+          }
+        };
+        return paymentRequestStub;
+      },
       elements() {
         return {
           create() {
