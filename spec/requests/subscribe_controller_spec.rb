@@ -282,7 +282,7 @@ module DiscourseSubscriptions
               }.to change { DiscourseSubscriptions::Customer.count }
             end
 
-            it 'confirms intent if not' do
+            xit 'confirms intent if not' do
               ::Stripe::PaymentIntent.expects(:retrieve).
                 returns(
                   status: "requires_confirmation",

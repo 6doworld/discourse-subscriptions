@@ -108,7 +108,7 @@ module DiscourseSubscriptions
           payment_intent = retrieve_payment_intent(transaction[:id]) if transaction[:status] ==
             "open"
 
-          payment_intent = confirm_intent(payment_intent)
+          # payment_intent = confirm_intent(payment_intent)
 
           transaction = ::Stripe::Invoice.pay(invoice[:id]) if payment_intent[:status] ==
             "successful"
