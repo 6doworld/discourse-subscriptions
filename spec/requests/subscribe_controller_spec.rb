@@ -235,69 +235,6 @@ module DiscourseSubscriptions
         describe "#create" do
           before { ::Stripe::Customer.expects(:create).returns(id: "cus_1234") }
 
-          it "creates a subscription" do
-            ::Stripe::Price.expects(:retrieve).returns(
-              type: "recurring",
-              product: "product_12345",
-              metadata: {
-                group_name: "awesome",
-                trial_period_days: 0,
-              },
-            )
-
-            ::Stripe::Subscription
-              .expects(:create)
-              .with(
-                customer: "cus_1234",
-                items: [price: "plan_1234"],
-                metadata: {
-                  user_id: user.id,
-                  username: user.username_lower,
-                },
-                trial_period_days: 0,
-                promotion_code: nil,
-              )
-              .returns(status: "active", customer: "cus_1234")
-
-            expect {
-              post "/s/create.json", params: { plan: "plan_1234", source: "tok_1234" }
-            }.to change { DiscourseSubscriptions::Customer.count }
-          end
-
-          it "creates a one time payment subscription" do
-            ::Stripe::Price.expects(:retrieve).returns(
-              type: "one_time",
-              product: "product_12345",
-              metadata: {
-                group_name: "awesome",
-              },
-            )
-
-            ::Stripe::InvoiceItem.expects(:create)
-
-            ::Stripe::Invoice.expects(:create).returns(status: "open", id: "in_123")
-
-            ::Stripe::Invoice.expects(:finalize_invoice).returns(
-              id: "in_123",
-              status: "open",
-              payment_intent: "pi_123",
-            )
-
-            ::Stripe::Invoice.expects(:retrieve).returns(
-              id: "in_123",
-              status: "open",
-              payment_intent: "pi_123",
-            )
-
-            ::Stripe::PaymentIntent.expects(:retrieve).returns(status: "successful")
-
-            ::Stripe::Invoice.expects(:pay).returns(status: "paid", customer: "cus_1234")
-
-            expect {
-              post "/s/create.json", params: { plan: "plan_1234", source: "tok_1234" }
-            }.to change { DiscourseSubscriptions::Customer.count }
-          end
-
           it "creates a customer model" do
             ::Stripe::Price.expects(:retrieve).returns(type: "recurring", metadata: {}).twice
             ::Stripe::Subscription.expects(:create).returns(status: "active", customer: "cus_1234")
@@ -311,6 +248,60 @@ module DiscourseSubscriptions
             expect {
               post "/s/create.json", params: { plan: "plan_5678", source: "tok_5678" }
             }.not_to change { DiscourseSubscriptions::Customer.count }
+          end
+
+          context "with a one time payment" do
+            before do
+              ::Stripe::Price.expects(:retrieve).returns(
+                type: "one_time",
+                product: "product_12345",
+                metadata: {
+                  group_name: "awesome",
+                }
+              )
+              ::Stripe::InvoiceItem.expects(:create)
+              ::Stripe::Invoice.expects(:create).returns(status: "open", id: "in_123")
+              ::Stripe::Invoice.expects(:finalize_invoice).returns(
+                id: "in_123",
+                status: "open",
+                payment_intent: "pi_123"
+              )
+              ::Stripe::Invoice.expects(:retrieve).returns(
+                id: "in_123",
+                status: "open",
+                payment_intent: "pi_123",
+                )
+              ::Stripe::Invoice.expects(:pay).returns(status: "paid", customer: "cus_1234")
+            end
+
+            it 'creates subscription' do
+              ::Stripe::PaymentIntent.expects(:retrieve).returns(status: "successful")
+
+              expect {
+                post "/s/create.json", params: { plan: "plan_1234", source: "tok_1234" }
+              }.to change { DiscourseSubscriptions::Customer.count }
+            end
+
+            it 'confirms intent if not' do
+              ::Stripe::PaymentIntent.expects(:retrieve).
+                returns(
+                  status: "requires_confirmation",
+                  id: 'intent_id',
+                  payment_method: 'card'
+                )
+              ::Stripe::PaymentIntent.expects(:confirm).
+                with(
+                  'intent_id',
+                  { payment_method: 'card' }
+                ).
+                returns(
+                  status: "successful"
+                )
+
+              expect {
+                post "/s/create.json", params: { plan: "plan_1234", source: "tok_4321" }
+              }.to change { DiscourseSubscriptions::Customer.count }
+            end
           end
 
           context "with customer name & address" do

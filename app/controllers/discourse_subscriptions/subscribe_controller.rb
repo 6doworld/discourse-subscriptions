@@ -107,6 +107,7 @@ module DiscourseSubscriptions
           transaction = ::Stripe::Invoice.finalize_invoice(invoice[:id])
           payment_intent = retrieve_payment_intent(transaction[:id]) if transaction[:status] ==
             "open"
+
           payment_intent = confirm_intent(payment_intent)
 
           transaction = ::Stripe::Invoice.pay(invoice[:id]) if payment_intent[:status] ==
@@ -232,9 +233,8 @@ module DiscourseSubscriptions
       %w[active trialing paid].include?(transaction[:status])
     end
 
-    # TODO: request specs
     def confirm_intent(payment_intent)
-      return unless intent_requires_confirmation?(payment_intent)
+      return payment_intent unless intent_requires_confirmation?(payment_intent)
 
       ::Stripe::PaymentIntent.confirm(
         payment_intent[:id],
