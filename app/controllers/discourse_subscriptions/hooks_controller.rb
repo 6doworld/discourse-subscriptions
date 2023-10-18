@@ -80,6 +80,10 @@ module DiscourseSubscriptions
         end
 
         customer.destroy!
+      when 'product.updated'
+        create_or_update_product(event['data'])
+      when 'product.created'
+        create_or_update_product(event['data'])
       end
 
       head 200
@@ -91,6 +95,11 @@ module DiscourseSubscriptions
       attrs = customer_attrs(event)
       customer = ::DiscourseSubscriptions::Customer.find_by(attrs)
       customer ||= ::DiscourseSubscriptions::Customer.create!(attrs)
+    end
+
+    def create_or_update_product(product_data)
+      fresh_data = product_data['object']
+      ::DiscourseSubscriptions::Products::CreateOrUpdateService.new(fresh_data).call!
     end
 
     def subscription_attrs(event, customer)

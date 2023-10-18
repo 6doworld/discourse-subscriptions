@@ -106,6 +106,38 @@ module DiscourseSubscriptions
           expect(response.status).to eq 200
         end
       end
+
+      # TODO: refactor
+      describe "product.updated" do
+        let(:event) { { type: "product.updated", "data" => { "object" => { id: "prod_12345"} } } }
+
+        before do
+          ::Stripe::Webhook.stubs(:construct_event).returns(event)
+          ::DiscourseSubscriptions::Products::CreateOrUpdateService.
+            any_instance.stubs(:call!).returns(true)
+        end
+
+        it "responds with 200 OK status code" do
+          post "/s/hooks.json"
+          expect(response.status).to eq 200
+        end
+      end
+
+      # TODO: refactor
+      describe "product.created" do
+        let(:event) { { type: "product.created", "data" => { "object" => { id: "prod_12345"} } } }
+
+        before do
+          ::Stripe::Webhook.stubs(:construct_event).returns(event)
+          ::DiscourseSubscriptions::Products::CreateOrUpdateService.
+            any_instance.stubs(:call!).returns(true)
+        end
+
+        it "responds with 200 OK status code" do
+          post "/s/hooks.json"
+          expect(response.status).to eq 200
+        end
+      end
     end
   end
 end
