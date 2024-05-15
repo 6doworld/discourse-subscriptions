@@ -48,6 +48,23 @@ module DiscourseSubscriptions
                     puts event
                 
                     payment_intent = event[:data][:object]
+
+                    if payment_intent[:metadata][:payment_type]
+                        if payment_intent[:metadata][:type] == "mins"
+                            if tts_user = ::Dis6doTts::TtsUser.where(user_id: payment_intent[:metadata][:user_id].to_i).first
+                                tts_user.increment(:minutes_purchased, payment_intent[:metadata][:quantity].to_i)
+                                tts_user.save
+                            end
+                        elsif payment_intent[:metadata][:type] == "files"
+                            if tts_user = ::Dis6doTts::TtsUser.where(user_id: payment_intent[:metadata][:user_id].to_i).first
+                                tts_user.increment(:files_purchased, payment_intent[:metadata][:quantity].to_i)
+                                tts_user.save
+                            end
+                        end
+
+                        return
+                    end
+
                     recurring_payment = event[:data][:object][:metadata][:recurring_payment] == 'true'
                     system_recurring_interval = event[:data][:object][:metadata][:system_recurring_interval]
                 
@@ -63,6 +80,11 @@ module DiscourseSubscriptions
                     if internal_subscription.present?
                         if recurring_payment
                             internal_subscription.update(status: "succeeded", active: true, next_due: next_due, last_notification: nil)
+                            
+                            # On renewal, if user renews then reset 6DO TTS Usages
+                            if tts_user = ::Dis6doTts::TtsUser.where(user_id: event[:data][:object][:metadata][:user_id].to_i).first
+                                tts_user.reset_stats
+                            end
                         end
                     else
                         if recurring_payment
@@ -125,6 +147,11 @@ module DiscourseSubscriptions
 
                   user = ::User.find_by(id: customer.user_id)
                   return render_json_error "user not found" if !user
+
+                  # On renewal, if user renews then reset 6DO TTS Usages
+                  if tts_user = ::Dis6doTts::TtsUser.where(user_id: event[:data][:object][:metadata][:user_id].to_i).first
+                    tts_user.reset_stats
+                  end
 
                   if group = plan_group(event[:data][:object][:plan])
                   group.add(user)
