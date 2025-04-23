@@ -271,7 +271,7 @@ module DiscourseSubscriptions
         grouped[interval]&.sort_by { |plan| plan[:unit_amount_cny].to_i } || []
       end
     
-      others = grouped.except("month", "year").values.flatten
+      others = grouped.reject { |key, _| %w[month year].include?(key) }.values.flatten
     
       sorted + others
     end
