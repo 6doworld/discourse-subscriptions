@@ -263,9 +263,21 @@ module DiscourseSubscriptions
     end
 
     def serialize_plans(plans)
-      plans[:data]
-        .map { |plan| serialize_plan(plan) }
-        .sort_by { |plan| plan[:amount] }
+      all_plans = plans[:data].map { |plan| serialize_plan(plan) }
+    
+      grouped = all_plans.group_by { |plan| extract_interval(plan) }
+    
+      sorted = %w[month year].flat_map do |interval|
+        grouped[interval]&.sort_by { |plan| plan[:unit_amount_cny].to_i } || []
+      end
+    
+      others = grouped.except("month", "year").values.flatten
+    
+      sorted + others
+    end
+
+    def extract_interval(plan)
+      plan.dig(:metadata, :system_recurring_interval) || "other"
     end
 
     def serialize_plan(plan)
