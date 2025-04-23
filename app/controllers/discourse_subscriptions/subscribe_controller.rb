@@ -285,8 +285,7 @@ module DiscourseSubscriptions
     end
 
     def extract_interval(plan)
-      value = plan.dig(:metadata, :system_recurring_interval)
-      value.is_a?(String) ? value : "other"
+      plan[:metadata][:system_recurring_interval] rescue "other"
     end
 
     def serialize_plan(plan)
