@@ -5,7 +5,8 @@ export default Component.extend({
   @discourseComputed("plans")
   orderedPlans(plans) {
     if (plans) {
-      return plans.sort((a, b) => (a.unit_amount > b.unit_amount ? 1 : -1));
+      // return plans.sort((a, b) => (a.unit_amount > b.unit_amount ? 1 : -1));
+      return plans;
     }
   },
 
