@@ -265,26 +265,28 @@ module DiscourseSubscriptions
     def serialize_plans(plans)
       all_plans = plans[:data].map { |plan| serialize_plan(plan) }
     
-      Rails.logger.info "PLANS: #{all_plans.inspect}"
-    
       grouped = all_plans.group_by { |plan| extract_interval(plan) }
     
-      Rails.logger.info "GROUPED: #{grouped.keys}"
+      # Sort "month" and "year" using unit_amount_cny first, fallback to unit_amount
+      sorted_month = (grouped["month"] || []).sort_by do |plan|
+        cny = plan[:unit_amount_cny].to_i
+        cny.zero? ? plan[:unit_amount].to_i : cny
+      end
     
-      sorted = %w[month year].flat_map do |interval|
-        plans = grouped[interval]&.sort_by { |plan| plan[:unit_amount_cny].to_i } || []
-        Rails.logger.info "SORTED #{interval}: #{plans.map { |p| p[:id] }}"
-        plans
+      sorted_year = (grouped["year"] || []).sort_by do |plan|
+        cny = plan[:unit_amount_cny].to_i
+        cny.zero? ? plan[:unit_amount].to_i : cny
       end
     
       others = grouped.reject { |key, _| %w[month year].include?(key) }.values.flatten
     
-      Rails.logger.info "OTHERS: #{others.map { |p| p[:id] }}"
-    
-      sorted + others
+      sorted_month + sorted_year + others
     end
 
+
     def extract_interval(plan)
+       Rails.logger.info "INTERVAL_PLAN: #{plan[:metadata][:system_recurring_interval]}"
+      
       plan[:metadata][:system_recurring_interval] rescue "other"
     end
 
