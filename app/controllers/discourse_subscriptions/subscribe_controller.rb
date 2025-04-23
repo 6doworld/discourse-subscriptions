@@ -265,19 +265,28 @@ module DiscourseSubscriptions
     def serialize_plans(plans)
       all_plans = plans[:data].map { |plan| serialize_plan(plan) }
     
+      Rails.logger.info "PLANS: #{all_plans.inspect}"
+    
       grouped = all_plans.group_by { |plan| extract_interval(plan) }
     
+      Rails.logger.info "GROUPED: #{grouped.keys}"
+    
       sorted = %w[month year].flat_map do |interval|
-        grouped[interval]&.sort_by { |plan| plan[:unit_amount_cny].to_i } || []
+        plans = grouped[interval]&.sort_by { |plan| plan[:unit_amount_cny].to_i } || []
+        Rails.logger.info "SORTED #{interval}: #{plans.map { |p| p[:id] }}"
+        plans
       end
     
       others = grouped.reject { |key, _| %w[month year].include?(key) }.values.flatten
+    
+      Rails.logger.info "OTHERS: #{others.map { |p| p[:id] }}"
     
       sorted + others
     end
 
     def extract_interval(plan)
-      plan.dig(:metadata, :system_recurring_interval) || "other"
+      value = plan.dig(:metadata, :system_recurring_interval)
+      value.is_a?(String) ? value : "other"
     end
 
     def serialize_plan(plan)
